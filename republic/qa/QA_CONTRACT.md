@@ -37,7 +37,12 @@ Only BLOCKER and DEFECT findings prevent Republic v1 from shipping.
    hypothetical failure is an IMPROVEMENT.
 3. **No redesign.** A finding proposes the smallest fix that resolves the demonstrated
    issue. It never proposes replacing a component, adding a framework, or restructuring
-   departments. Those go through `FREEZE.md`.
+   the Republic. Those go through `FREEZE.md`.
+3a. **Preserved pieces are off limits without a reproduction.** SOUL, profiles,
+   Librarian, knowledge, Kanban job creation, GHL publishing, Socrates, and the
+   baseline editing workflow (SPEC §1) change only on a BLOCKER/DEFECT with a
+   reproduction and Rachel's decision. "I would have built it differently" is a
+   PREFERENCE and is recorded in one line.
 4. **PREFERENCE is recorded, not argued.** One line, no advocacy. Rachel may ignore it.
 5. **Verdict is binary.** Each review ends `PASS` (no open BLOCKER/DEFECT) or `FAIL`
    (list them). "PASS with 47 improvements" is a PASS.
@@ -45,12 +50,12 @@ Only BLOCKER and DEFECT findings prevent Republic v1 from shipping.
    The re-review checks that finding and any regression it could cause. Nothing else
    is reopened.
 7. **Boundaries are a first-class check.** Every review verifies: Socrates does not
-   publish/approve; departments do not bypass RACHEL APPROVAL; paid spend above the
-   gate is never autonomous; Librarian never destroys originals; Claude never approves
-   or publishes.
+   publish/approve; no added skill bypasses the existing approval step; paid spend
+   above the gate is never autonomous; Librarian never destroys originals; Claude never
+   approves or publishes; preserved pieces are byte-identical to their pre-upgrade copies.
 8. **Operability is a first-class check.** If Rachel needs to read a terminal, copy a
-   prompt, or know a model name to use a feature, that is a DEFECT against SPEC §21
-   and the Definition of Done.
+   prompt, or know a model name to use a feature, that is a DEFECT against the
+   Definition of Done.
 
 ## What Claude QA may touch
 
@@ -61,7 +66,7 @@ Only BLOCKER and DEFECT findings prevent Republic v1 from shipping.
 ## What Claude QA may not do
 
 - Merge or deploy changes to the Droplet.
-- Move a Kanban card into or out of RACHEL APPROVAL.
+- Move a job through the existing approval step.
 - Approve paid spend or budget changes.
 - Publish, schedule, or push to GHL.
 - Edit `SPEC.md` except to correct a typo that changes no meaning.

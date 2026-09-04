@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Republic v1 package validator.
+"""Republic v1 upgrade package validator.
 
-Checks that the package is internally consistent with SPEC.md before install.
-Exit 0 = PASS, exit 1 = FAIL with every finding listed. No network, no external tools.
+Checks the package is internally consistent with SPEC.md and is ADDITIVE: every skill
+declares its batch and what it adds to, nothing in the package targets a preserved piece,
+and nothing excluded by FREEZE.md is present. Exit 0 = PASS, 1 = FAIL.
 """
 import os
 import re
@@ -10,50 +11,40 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKILLS = os.path.join(ROOT, "skills")
-BRANDS = os.path.join(ROOT, "brands")
-HF = os.path.join(ROOT, "hyperframes", "templates")
-PIPELINE = os.path.join(ROOT, "kanban", "pipeline.yaml")
 
-REQUIRED_SKILLS = {
-    "republic-triage": "republic",
-    "republic-research": "01_RESEARCH",
-    "republic-search": "02_SEARCH",
-    "republic-writing-system": "03_CONTENT",
-    "republic-platform-experts": "03_CONTENT",
-    "republic-repurposing": "03_CONTENT",
-    "republic-video-intake": "04_PRODUCTION",
-    "republic-editing": "04_PRODUCTION",
-    "republic-hyperframes": "04_PRODUCTION",
-    "republic-production-acceptance": "04_PRODUCTION",
-    "republic-distribution": "05_DISTRIBUTION_CRM",
-    "republic-paid": "06_PAID",
-    "republic-librarian": "knowledge",
-    "republic-anydoc": "knowledge",
-    "republic-qmd": "knowledge",
-    "republic-learning-loop": "knowledge",
-    "republic-kanban": "control",
-    "republic-qa": "control",
+# capability → (batch, required references)
+REQUIRED = {
+    "republic-video-vision": 1,
+    "republic-openmontage": 1,
+    "republic-hyperframes": 1,
+    "republic-last-30-days": 2,
+    "republic-writing": 2,
+    "republic-anydoc": 3,
+    "republic-claude-seo": 4,
+    "republic-claude-ads": 4,
 }
-DEPARTMENTS = {"01_RESEARCH", "02_SEARCH", "03_CONTENT", "04_PRODUCTION", "05_DISTRIBUTION_CRM", "06_PAID"}
-BRAND_FILES = ["brand.md", "voice.md", "audience.md", "offers.md", "proof.md", "objections.md", "prohibited-claims.md", "approved-examples"]
+WRITING_REFS = ["voice-dna", "ideation", "angles", "brand-writing", "conversion", "voice-qa"]
 PM_TEMPLATES = ["educational-reel", "review-highlight", "pain-explainer", "faq", "promotion", "myth-vs-fact"]
-PLATFORMS = ["instagram", "tiktok", "youtube", "facebook", "linkedin", "gbp"]
-COLUMNS = ["TRIAGE", "RESEARCH", "STRATEGY", "PLATFORM_BRIEF", "PRODUCTION", "QA", "RACHEL_APPROVAL", "SCHEDULED", "PUBLISHED", "MEASURED", "DONE"]
-# FREEZE.md exclusions must not appear as installed skills.
-EXCLUDED_TERMS = ["soup", "posthog", "herdr", "omarchy", "fincept", "vibe", "deepseek", "killer", "hook-agent", "caption-agent", "cta-agent"]
-# SPEC §23: skills reference worker tiers, never model IDs.
+DOCS = ["SPEC.md", "README.md", "FREEZE.md", "DEFINITION_OF_DONE.md", "GAP_ANALYSIS.md", "config.yaml",
+        "qa/QA_CONTRACT.md", "qa/QA_REPORT_TEMPLATE.md", "upgrades/librarian-llm-wiki.md",
+        "brands/brand-schema.md", "tests/acceptance/editing-acceptance.md", "tests/acceptance/end-to-end-run.md",
+        "batches/batch-1-production.md", "batches/batch-2-intelligence.md", "batches/batch-3-knowledge.md",
+        "batches/batch-4-growth.md"]
+# SPEC §1 — no skill may present itself as owning a preserved piece.
+PRESERVED_NAME_TERMS = ["soul", "identity", "profile", "librarian", "kanban", "ghl", "publish", "distribution",
+                        "socrates", "instagram", "qmd", "triage"]
+# FREEZE.md — excluded tools and the separately-installed writing skills.
+EXCLUDED_TERMS = ["soup", "posthog", "herdr", "deepseek", "archify", "omarchy", "fincept", "vibe",
+                  "killer", "hook-agent", "caption-agent", "cta-agent", "72-reasons"]
 MODEL_ID_RE = re.compile(r"\b(claude-[a-z]+-\d|gpt-\d|gpt-[45]o|qwen\d(\.\d)?[:\-]|gemini-\d|o[13]-mini|deepseek-[a-z0-9]+)\b", re.I)
+REPLACE_OK_RE = re.compile(r"^(nothing|none)\b|acceptance", re.I)
 
 findings = []
-
-
-def fail(msg):
-    findings.append(msg)
+fail = findings.append
 
 
 def frontmatter(path):
-    with open(path, encoding="utf-8") as f:
-        text = f.read()
+    text = open(path, encoding="utf-8").read()
     if not text.startswith("---\n"):
         return None, text
     end = text.find("\n---", 4)
@@ -67,165 +58,143 @@ def frontmatter(path):
     return fm, text
 
 
+def check_docs():
+    for f in DOCS:
+        if not os.path.isfile(os.path.join(ROOT, f)):
+            fail(f"document missing: {f}")
+    spec = open(os.path.join(ROOT, "SPEC.md"), encoding="utf-8").read() if os.path.isfile(os.path.join(ROOT, "SPEC.md")) else ""
+    if "FROZEN" not in spec:
+        fail("SPEC.md not marked FROZEN")
+    for h in ["## 0. Posture", "## 1. Preserved", "## 2. Demonstrated weak behavior", "## 3. Capabilities added",
+              "## 4. Republic Writing", "## 5. Batches", "## 6. Production acceptance", "## 7. Claude QA",
+              "## 8. Boundaries", "## 9. Excluded", "## 10. Definition of DONE"]:
+        if h not in spec:
+            fail(f"SPEC.md missing section '{h}'")
+    if "Preserve working behavior. Add missing capability. Replace only demonstrated weak behavior." not in spec:
+        fail("SPEC.md missing the conservative rule verbatim")
+    cfg = open(os.path.join(ROOT, "config.yaml"), encoding="utf-8").read() if os.path.isfile(os.path.join(ROOT, "config.yaml")) else ""
+    for key in ("absolute_usd", "relative_pct", "min_sample", "measurement_window_days"):
+        if not re.search(rf"^\s*{key}:\s*\d+", cfg, re.M):
+            fail(f"config.yaml: '{key}' missing or non-numeric")
+    if not re.search(r"autonomous_allowed:\s*false", cfg):
+        fail("config.yaml: paid_spend.autonomous_allowed must be false (SPEC §8)")
+    if MODEL_ID_RE.search(cfg):
+        fail("config.yaml names a model ID; tiers only (SPEC §8)")
+    patch = os.path.join(ROOT, "upgrades", "librarian-llm-wiki.md")
+    if os.path.isfile(patch):
+        t = open(patch, encoding="utf-8").read()
+        if "APPEND" not in t or "Do not remove" not in t:
+            fail("librarian patch must state it is appended and removes nothing")
+        for q in ["UPDATE", "CONTRADICT", "STRENGTHEN", "SUPERSEDE", "CHANGE a project", "CREATE a relationship", "REVEAL", "CREATE a decision"]:
+            if q not in t:
+                fail(f"librarian patch missing question '{q}'")
+    readme = open(os.path.join(ROOT, "README.md"), encoding="utf-8").read() if os.path.isfile(os.path.join(ROOT, "README.md")) else ""
+    for name in REQUIRED:
+        if f"`{name}`" not in readme:
+            fail(f"README capabilities table missing {name}")
+    contract = open(os.path.join(ROOT, "qa", "QA_CONTRACT.md"), encoding="utf-8").read() if os.path.isfile(os.path.join(ROOT, "qa", "QA_CONTRACT.md")) else ""
+    for cls in ("BLOCKER", "DEFECT", "IMPROVEMENT", "PREFERENCE"):
+        if cls not in contract:
+            fail(f"QA contract missing {cls}")
+    if "Preserved pieces" not in contract:
+        fail("QA contract missing the preserved-pieces rule")
+    acc = os.path.join(ROOT, "tests", "acceptance", "editing-acceptance.md")
+    if os.path.isfile(acc) and "Baseline" not in open(acc, encoding="utf-8").read():
+        fail("editing acceptance sheet has no Baseline column (SPEC §6)")
+
+
 def check_skills():
     if not os.path.isdir(SKILLS):
-        fail("skills/ directory missing")
+        fail("skills/ missing")
         return
-    present = {d for d in os.listdir(SKILLS) if os.path.isdir(os.path.join(SKILLS, d))}
-    for name in REQUIRED_SKILLS:
+    present = sorted(d for d in os.listdir(SKILLS) if os.path.isdir(os.path.join(SKILLS, d)))
+    for name in REQUIRED:
         if name not in present:
-            fail(f"required skill missing: {name}")
-    names_seen = set()
-    depts_seen = set()
-    for d in sorted(present):
-        skill_md = os.path.join(SKILLS, d, "SKILL.md")
-        if not os.path.isfile(skill_md):
+            fail(f"required capability missing: {name}")
+    for d in present:
+        if d not in REQUIRED:
+            fail(f"unexpected skill '{d}': not in SPEC §3 capability table (additive package only)")
+        low = d.lower()
+        for t in PRESERVED_NAME_TERMS:
+            if t in low:
+                fail(f"{d}: name claims a preserved piece '{t}' (SPEC §1)")
+        for t in EXCLUDED_TERMS:
+            if t in low:
+                fail(f"{d}: name contains excluded term '{t}' (FREEZE.md)")
+        p = os.path.join(SKILLS, d, "SKILL.md")
+        if not os.path.isfile(p):
             fail(f"{d}: SKILL.md missing")
             continue
-        fm, text = frontmatter(skill_md)
+        fm, text = frontmatter(p)
         if fm is None:
-            fail(f"{d}: SKILL.md has no YAML front matter")
+            fail(f"{d}: no front matter")
             continue
-        for key in ("name", "description", "version", "department"):
+        for key in ("name", "description", "version", "batch", "adds_to", "replaces", "preserves"):
             if not fm.get(key):
                 fail(f"{d}: front matter missing '{key}'")
         if fm.get("name") != d:
-            fail(f"{d}: front matter name '{fm.get('name')}' != directory name")
-        if fm.get("name") in names_seen:
-            fail(f"{d}: duplicate skill name")
-        names_seen.add(fm.get("name"))
-        if d in REQUIRED_SKILLS and fm.get("department") != REQUIRED_SKILLS[d]:
-            fail(f"{d}: department '{fm.get('department')}' != expected '{REQUIRED_SKILLS[d]}'")
-        depts_seen.add(fm.get("department"))
+            fail(f"{d}: name '{fm.get('name')}' != directory")
+        if d in REQUIRED and str(fm.get("batch")) != str(REQUIRED[d]):
+            fail(f"{d}: batch {fm.get('batch')} != SPEC §3 batch {REQUIRED[d]}")
+        rep = fm.get("replaces", "")
+        if rep and not REPLACE_OK_RE.search(rep):
+            fail(f"{d}: replaces '{rep}' — only 'nothing' or an acceptance-gated replacement is allowed")
+        if "acceptance" in rep.lower() and d != "republic-openmontage":
+            fail(f"{d}: only the editing candidate may replace behavior (SPEC §2)")
         if len(fm.get("description", "")) < 80:
-            fail(f"{d}: description too short to trigger reliably (<80 chars)")
+            fail(f"{d}: description too short to trigger reliably")
         if "SPEC §" not in text:
-            fail(f"{d}: no SPEC § citation (traceability)")
-        if "## Boundaries" not in text and "## Hard limits" not in text:
-            fail(f"{d}: no Boundaries/Hard limits section")
+            fail(f"{d}: no SPEC § citation")
+        if "## Boundaries" not in text:
+            fail(f"{d}: no Boundaries section")
         for m in MODEL_ID_RE.finditer(text):
-            fail(f"{d}: model ID '{m.group(0)}' in skill text (SPEC §23: worker tiers only)")
-        low = d.lower()
-        for term in EXCLUDED_TERMS:
-            if term in low:
-                fail(f"{d}: skill name contains excluded term '{term}' (FREEZE.md)")
-    for dept in DEPARTMENTS:
-        if dept not in depts_seen:
-            fail(f"department {dept} has no skill")
-    # platform expert references
-    for p in PLATFORMS:
-        ref = os.path.join(SKILLS, "republic-platform-experts", "references", f"{p}.md")
-        if not os.path.isfile(ref):
-            fail(f"platform reference missing: {p}.md")
-    for ref in ["voice-dna", "blank-page", "angles", "brand-writing", "direct-response", "writing-qa"]:
-        if not os.path.isfile(os.path.join(SKILLS, "republic-writing-system", "references", f"{ref}.md")):
-            fail(f"writing-system reference missing: {ref}.md")
+            fail(f"{d}: model ID '{m.group(0)}' (tiers only)")
+        if re.search(r"never publishes|never publish|no site edits|never edits campaigns|never files|never touches the existing intake", text, re.I) is None:
+            fail(f"{d}: Boundaries do not state what it never does to existing steps")
+    for r in WRITING_REFS:
+        if not os.path.isfile(os.path.join(SKILLS, "republic-writing", "references", f"{r}.md")):
+            fail(f"republic-writing reference missing: {r}.md")
+    w = os.path.join(SKILLS, "republic-writing", "SKILL.md")
+    if os.path.isfile(w):
+        t = open(w, encoding="utf-8").read()
+        for src in ("Ghostwriter Killer", "Blank Page Killer", "72 Reasons to Buy", "Direct Response Copywriter", "AI Slop Killer"):
+            if src not in t:
+                fail(f"republic-writing does not absorb '{src}' (SPEC §4)")
+        if "would this person actually say this" not in t.lower():
+            fail("republic-writing missing the permanent voice-QA rule")
 
 
-def check_pipeline():
-    if not os.path.isfile(PIPELINE):
-        fail("kanban/pipeline.yaml missing")
-        return
-    with open(PIPELINE, encoding="utf-8") as f:
-        text = f.read()
-    ids = re.findall(r"^\s*-\s*id:\s*([A-Z_]+)\s*$", text, re.M)
-    if ids != COLUMNS:
-        fail(f"pipeline columns {ids} != SPEC §21 {COLUMNS}")
-    # gate: only rachel advances out of RACHEL_APPROVAL
-    m = re.search(r"RACHEL_APPROVAL:\s*\n\s*may_advance:\s*\[([^\]]*)\]", text)
-    if not m or m.group(1).strip() != "rachel":
-        fail("gates.RACHEL_APPROVAL.may_advance must be exactly [rachel]")
-    if not re.search(r"autonomous_allowed:\s*false", text):
-        fail("gates.paid_spend.autonomous_allowed must be false (SPEC §16)")
-    for key in ("absolute_usd", "relative_pct", "min_sample", "measurement_window_days"):
-        if not re.search(rf"^\s*{key}:\s*\d+", text, re.M):
-            fail(f"pipeline threshold '{key}' missing or non-numeric")
-    # every path uses defined columns and ends at DONE
-    for name, body in re.findall(r"^\s*(content|search|paid|knowledge|ops):\s*\[([^\]]*)\]", text, re.M):
-        cols = [c.strip() for c in body.split(",")]
-        for c in cols:
-            if c not in COLUMNS:
-                fail(f"path {name} uses undefined column {c}")
-        if cols[-1] != "DONE":
-            fail(f"path {name} does not end at DONE")
-        if name in ("content", "search", "paid", "ops") and "RACHEL_APPROVAL" not in cols:
-            fail(f"path {name} bypasses RACHEL_APPROVAL")
-    if re.search(r"model\s*:\s*[a-z]", text, re.I):
-        fail("pipeline.yaml names a model; use worker tiers (SPEC §23)")
-
-
-def check_brands():
-    if not os.path.isdir(BRANDS):
-        fail("brands/ missing")
-        return
-    for b in sorted(os.listdir(BRANDS)):
-        bd = os.path.join(BRANDS, b)
-        if not os.path.isdir(bd):
-            continue
-        for f in BRAND_FILES:
-            if not os.path.exists(os.path.join(bd, f)):
-                fail(f"brand {b}: missing {f} (SPEC §4 Stage A schema)")
-        voice = os.path.join(bd, "voice.md")
-        if os.path.isfile(voice):
-            fm, text = frontmatter(voice)
-            if "TODO-SOURCE" not in text and (fm is None or fm.get("sources", "[]") in ("[]", "")):
-                fail(f"brand {b}: voice.md has no TODO-SOURCE marker and no sources — voice must trace to human material")
-
-
-def check_hyperframes():
-    pm = os.path.join(HF, "physically-meta")
+def check_templates():
+    base = os.path.join(ROOT, "hyperframes", "templates", "physically-meta")
     for t in PM_TEMPLATES:
-        p = os.path.join(pm, f"{t}.md")
+        p = os.path.join(base, f"{t}.md")
         if not os.path.isfile(p):
-            fail(f"hyperframes template missing: physically-meta/{t}.md (SPEC §9)")
+            fail(f"hyperframes template missing: {t}.md")
             continue
         fm, _ = frontmatter(p)
         if fm is None or fm.get("template") != t:
             fail(f"hyperframes template {t}: front matter 'template' != filename")
 
 
-def check_docs():
-    for f in ["SPEC.md", "FREEZE.md", "DEFINITION_OF_DONE.md", "README.md", "qa/QA_CONTRACT.md", "qa/QA_REPORT_TEMPLATE.md", "kanban/card-template.md", "tests/acceptance/editing-acceptance.md", "tests/acceptance/end-to-end-run.md"]:
-        if not os.path.isfile(os.path.join(ROOT, f)):
-            fail(f"document missing: {f}")
-    spec = os.path.join(ROOT, "SPEC.md")
-    if os.path.isfile(spec):
-        with open(spec, encoding="utf-8") as fh:
-            s = fh.read()
-        if "FROZEN" not in s:
-            fail("SPEC.md not marked FROZEN")
-        for n in range(1, 29):
-            if not re.search(rf"^## {n}\. ", s, re.M):
-                fail(f"SPEC.md missing section {n}")
-    readme = os.path.join(ROOT, "README.md")
-    if os.path.isfile(readme):
-        with open(readme, encoding="utf-8") as fh:
-            r = fh.read()
-        for name in REQUIRED_SKILLS:
-            if f"`{name}`" not in r:
-                fail(f"README skills table missing {name}")
-    contract = os.path.join(ROOT, "qa", "QA_CONTRACT.md")
-    if os.path.isfile(contract):
-        with open(contract, encoding="utf-8") as fh:
-            c = fh.read()
-        for cls in ("BLOCKER", "DEFECT", "IMPROVEMENT", "PREFERENCE"):
-            if cls not in c:
-                fail(f"QA contract missing classification {cls}")
+def check_nothing_rebuilt():
+    """The package must not carry structures that would duplicate the existing Republic."""
+    for path in ["kanban", "brands/_template", "brands/physically-meta"]:
+        if os.path.exists(os.path.join(ROOT, path)):
+            fail(f"'{path}' present — would duplicate an existing Republic structure (SPEC §1)")
 
 
 def main():
     check_docs()
     check_skills()
-    check_pipeline()
-    check_brands()
-    check_hyperframes()
+    check_templates()
+    check_nothing_rebuilt()
     if findings:
         print(f"FAIL — {len(findings)} finding(s):")
         for f in findings:
             print(f"  - {f}")
         sys.exit(1)
-    n = len([d for d in os.listdir(SKILLS) if os.path.isdir(os.path.join(SKILLS, d))])
-    print(f"PASS — {n} skills, {len(COLUMNS)} columns, brands and templates consistent with SPEC.md")
+    print(f"PASS — {len(REQUIRED)} additive capabilities across 4 batches, 1 Librarian patch, "
+          f"{len(PM_TEMPLATES)} templates; no preserved piece targeted; no excluded tool present")
 
 
 if __name__ == "__main__":

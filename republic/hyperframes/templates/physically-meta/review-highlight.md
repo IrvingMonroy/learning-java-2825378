@@ -19,7 +19,7 @@ Review animation: quote card with rating, 8–15s.
 - consent_ref (proof.md row)
 
 ## Brand tokens
-Read from `brands/physically-meta/brand.md → Visual tokens`. Render refuses if any token is empty.
+Read from the existing Physically Meta brand profile (fields per `brands/brand-schema.md → brand`). Render refuses if any token is empty.
 
 ## Acceptance
 Scored in `tests/acceptance/editing-acceptance.md`. Holds a permanent position only after passing.

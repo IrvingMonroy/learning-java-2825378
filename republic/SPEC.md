@@ -1,340 +1,139 @@
-# The Republic — v1 Implementation Specification
+# The Republic — v1 Upgrade Specification
 
-**Status:** FROZEN (architecture decisions closed)
+**Status:** FROZEN (decisions closed; this supersedes the earlier "departments" draft)
 **Owner:** Rachel Hightower
-**Reviewer:** Claude, independent QA (see `qa/QA_CONTRACT.md`)
-**Runtime:** Hermes Agent (Nous) on the VPS Droplet, reached over Tailscale
+**Reviewer:** Claude, independent QA (`qa/QA_CONTRACT.md`)
+**Runtime:** the existing Republic on Hermes Agent (VPS Droplet), Socrates as interface
 **Version:** 1.0.0
 
-This document is the authoritative description of what Republic v1 is. It records
-decisions already made. It is not a design discussion. Changes to this document
-after v1 ships follow the v1.1 change policy in `FREEZE.md`.
+## 0. Posture
 
----
-
-## 1. Governing architecture
+The Republic already exists. It has a SOUL/identity, profiles, a Librarian, knowledge in
+Obsidian with QMD retrieval, Kanban job creation, a GHL direction, and a working
+raw-video → Instagram workflow. **This is not a rebuild.**
 
 ```
-                         RACHEL
-                            │
-                            ▼
-                       SOCRATES
-                 Personal EA / interface
-                            │
-                   submits requests
-                            ▼
-                    ╔══════════════╗
-                    ║ THE REPUBLIC ║
-                    ╚══════════════╝
-                            │
-                         KANBAN
-                            │
-     ┌──────────┬───────────┼───────────┬───────────┐
-     ▼          ▼           ▼           ▼           ▼
- RESEARCH     SEARCH      CONTENT    PRODUCTION     PAID
-     │          │           │           │           │
-     │      Claude SEO      │       Video Vision  Claude Ads
-     │                      │       OpenMontage
-     │                      │       HyperFrames
-     └──────────────┬───────┴───────────┘
-                    ▼
-                   GHL
-          publishing / CRM / automation
-                    ▼
-                 RESULTS
-                    ▼
-                LIBRARIAN
-                    │
-             Obsidian + QMD
-                    │
-                    └────→ Republic learns
+CURRENT REPUBLIC
+      │
+      ├── existing SOUL / identity
+      ├── existing profiles
+      ├── existing Librarian
+      ├── existing knowledge
+      └── existing workflows
+               │
+               ▼
+         ADD CAPABILITIES
 ```
 
-Claude sits outside this loop:
+**The conservative rule:** Preserve working behavior. Add missing capability. Replace only demonstrated weak behavior.
+
+## 1. Preserved — do not touch
+
+| Existing piece | Rule |
+|---|---|
+| Republic SOUL / identity | Not rewritten because new skills appeared |
+| Profiles, including the Instagram profile | If it works, it is not rebuilt |
+| Librarian | Instructions are upgraded in place (§3, Batch 3); never replaced |
+| Knowledge: Obsidian + QMD | Untouched; QMD stays retrieval/index only |
+| Kanban job creation | Left intact; new capabilities attach to existing jobs |
+| GHL publishing / direction | Not touched |
+| Socrates capture and interface | Not touched |
+| Raw video → Instagram workflow | Becomes the **baseline** the new editing stack is measured against |
+
+Any change to a preserved piece requires a demonstrated defect (QA BLOCKER/DEFECT with
+a reproduction) and Rachel's decision. "We found a better way" is a PREFERENCE.
+
+## 2. Demonstrated weak behavior
+
+**Video editing.** This is the only replacement target in v1 and the first batch.
+
+## 3. Capabilities added
+
+| Capability | Given to | Purpose | Batch |
+|---|---|---|---|
+| Video Vision | Republic / shared Mac Mini | Understand raw video: transcript, timestamps, moments, clips, hooks. Observes; Republic interprets | 1 |
+| OpenMontage | Republic production | Automated editing of real footage | 1 |
+| HyperFrames | Republic production | Programmatic, branded video generation from templates | 1 |
+| Last 30 Days | Republic | Current trend and audience research, one pass per job | 2 |
+| Republic Writing (one custom skill) | Republic | Voice DNA · ideation · angles · conversion writing · final voice QA, chosen by job | 2 |
+| LLM-Wiki methodology | Librarian | Maintain coherent knowledge rather than pile up notes (instruction patch) | 3 |
+| AnyDoc | Librarian | Make incoming documents machine-readable before the Librarian interprets them | 3 |
+| Claude SEO access/workflow | Republic | SEO and local search specialist, bounded requests | 4 |
+| Claude Ads access/workflow | Republic | Paid advertising specialist, bounded requests, spend gate | 4 |
+
+Each capability is one skill directory under `skills/` (or one patch under `upgrades/`)
+with front matter declaring `batch`, `adds_to`, `replaces`, and `preserves`.
+
+## 4. Republic Writing — one skill, not five
 
 ```
-Republic build/change → Claude independent QA → PASS / FAIL / findings → fix only demonstrated issues
+REPUBLIC-WRITING
+├── Ghostwriter Killer        → voice DNA
+├── Blank Page Killer         → ideation / starting
+├── 72 Reasons to Buy         → angles / motivations
+├── Direct Response Copywriter→ conversion writing
+└── AI Slop Killer            → final voice QA
 ```
+The skill determines which behavior applies from the job's objective:
+CONNECT / TEACH / STORY / THOUGHT LEADERSHIP → brand writing;
+SELL / BOOK / OPT-IN / CONVERT → direct response. Conversion methodology never runs on
+the first path. Every draft ends with the voice QA: *would this person actually say
+this?* Voice DNA reads the brand's **existing** profile in the vault; the schema in
+`brands/brand-schema.md` lists what it expects and what to add if missing.
 
-Claude does not redesign Republic every time it reviews it.
-
-**Roles**
-
-| Actor | Role | Never does |
-|---|---|---|
-| Rachel | Principal. Approves. Sets direction. | Coordinates models by hand |
-| Socrates | Personal EA / interface. Captures, submits requests, reports status. | Posts, schedules, approves, edits video |
-| The Republic | Orchestrator. Owns *what* and *why*. Routes work through Kanban to departments. | Executes publishing itself; redesigns itself |
-| Departments | Six permanent functional areas (§2). | Own private copies of shared services |
-| GHL | Execution: scheduling, publishing, CRM, automation. | Decides strategy |
-| Librarian | Knowledge governance in Obsidian; QMD reindex. | Destroys originals |
-| Claude | Independent QA against this spec. | Redesigns; approves spend; publishes |
-
-## 2. Permanent departments
-
-Six permanent functional areas. Each is one Hermes skill directory under `skills/`.
-
-### 01_RESEARCH — produces evidence
-Last 30 Days; trend research; competitor research; review mining; customer-language
-mining; audience questions; content opportunities; research briefs.
-**Output:** a Research Brief. **Does not** write finished posts.
-
-### 02_SEARCH — specialist: Claude SEO
-Local SEO; Google Business Profile; technical SEO; content SEO; keyword and search
-intent; Search Console; GEO / AI-search optimization; competitor search analysis.
-Republic delegates bounded jobs to Claude SEO and receives structured output. The
-Claude SEO ecosystem is **not** ported into Hermes.
-
-### 03_CONTENT — editorial brain
-Content strategy; campaigns; content briefs; angles; writing; platform adaptation;
-brand voice. Contains the **Republic Writing System** (§4, §5), the **platform
-experts** (§3), and **Repurposing** (§11).
-
-### 04_PRODUCTION — highest-priority build
-Media understanding; clip selection; editing; captions; graphics; generated visual
-assets; rendering; formatting.
-Core stack: **Video Vision + OpenMontage + HyperFrames.** Each must earn its
-permanent position by passing the editing acceptance test (§10).
-
-### 05_DISTRIBUTION_CRM — the GHL interface
-Scheduling; publishing; CRM; lead capture; comment-to-DM; review workflows; nurture;
-funnels; appointment and booking workflows. **GHL is not recreated inside Hermes.**
-
-### 06_PAID — specialist: Claude Ads
-Advertising audits; Meta; Google; TikTok; YouTube; campaign strategy; wasted-spend
-identification; creative analysis; optimization plans. A specialist service, not
-nineteen new Hermes agents.
-
-## 3. Platform experts
-
-Persistent expertise only where it provides value. Under CONTENT:
-Instagram, TikTok, YouTube, Facebook, LinkedIn, Google Business Profile.
-
-Their one question: **Given this content and objective, what should this become on
-my platform?** They know format, audience expectations, hooks, length, metadata,
-caption behavior, and platform-native presentation. They do **not** each own a
-research department, copywriter, editor, or Librarian. Shared services do that.
-
-## 4. The Republic Writing System (consolidated)
-
-One system, four stages. The following are **not** installed as separate competing
-skills: Blank Page Killer, Ghostwriter Killer, 72 Reasons to Buy, Copywriter Killer,
-Slop Killer, Hook Agent, Caption Agent, CTA Agent. Their best principles are
-absorbed into the stages below.
-
-**Stage A — Voice DNA.** Each brand/client has a `BRAND/` directory:
-`brand.md, voice.md, audience.md, offers.md, proof.md, objections.md,
-prohibited-claims.md, approved-examples/`. `voice.md` is built primarily from real
-human material: transcripts, emails, existing posts, conversations, approved writing,
-recurring phrases, preferred and disliked vocabulary, cadence, humor, level of polish.
-
-**Stage B — Blank-page generation.** Produces useful starting material when no draft
-exists: concepts, hooks, outlines, story directions, structures, first drafts. It does
-not automatically turn everything into conversion copy.
-
-**Stage C — Angle generation.** Asks: *what credible reasons would different segments
-of this audience care?* Grounded in reviews, DMs, comments, search, sales language,
-customer questions, actual offer characteristics. Clustered into motivations. Not a
-literal 72 claims.
-
-**Stage D — Writing mode.** Objective is determined first:
+## 5. Batches and gates
 
 ```
-CONNECT / TEACH / STORY / THOUGHT LEADERSHIP  →  BRAND WRITING
-SELL / BOOK / OPT-IN / CONVERT                →  DIRECT RESPONSE
+Batch 1  Video Vision + OpenMontage + HyperFrames
+         → test against current editing → Claude QA → KEEP what works, REMOVE what doesn't
+Batch 2  Last 30 Days + Republic Writing
+Batch 3  Librarian LLM-Wiki upgrade + AnyDoc
+Batch 4  Claude SEO + Claude Ads
+DONE
 ```
-Direct-response methodology runs **only** on the second path.
+A batch ships only on a Claude QA PASS. Nothing from a later batch is installed
+before the earlier batch passes. Batch READMEs under `batches/` state each gate.
 
-## 5. Final Writing QA
+## 6. Production acceptance (Batch 1)
 
-Every draft is checked for: generic AI phrasing; fake profundity; excessive polish;
-repetitive rhetorical patterns; unnecessary summaries; clichés; invented claims;
-excessive adjectives; voice drift; forced CTAs; phrases the client doesn't use.
+Same source videos, three runs: **baseline** (current raw-video → Instagram
+workflow), OpenMontage, HyperFrames where the element type allows. Scored on quality,
+Rachel intervention, time saved, caption quality, clip selection, brand consistency,
+rendering reliability, cost, repeatability. A new tool holds a permanent position only
+if it requires **less Rachel** than the baseline on that job. If OpenMontage does
+something poorly and HyperFrames solves it, keep HyperFrames. If they duplicate, remove
+one. If neither beats the baseline, the baseline stays. Sheet:
+`tests/acceptance/editing-acceptance.md`.
 
-The goal is not to fool a detector. The permanent rule: **Would this person actually
-say this?**
+## 7. Claude QA
 
-## 6. Research system
+Strict role: find defects, do not redesign. Contract in `qa/QA_CONTRACT.md`. Findings
+are BLOCKER / DEFECT / IMPROVEMENT / PREFERENCE; only the first two block a batch.
+A proposal to change a preserved piece without a reproduction is a PREFERENCE.
 
-Last 30 Days is Republic's current-intelligence capability. One intelligence pass,
-many outputs:
+## 8. Boundaries retained from the design discussion
 
-```
-Research request → Last 30 Days + SEO signals + customer language + competitors
-               → RESEARCH BRIEF → Republic Strategy → platform experts
-```
-Platforms never independently research the same subject.
+- Video Vision observes. Republic interprets. Raw media never sets strategy.
+- Librarian: propose, don't destroy; every drop item gets exactly one outcome;
+  canonical decisions `status: active`, `canonical: true`; superseded notes preserved
+  and linked. LLM-Wiki adds *update the canonical note* to that, nothing removes it.
+- The existing approval step before GHL publishing stays where it is. New skills never
+  publish, schedule, or approve.
+- Paid: no autonomous change to substantial ad budgets. Threshold in `config.yaml`.
+- Learning: a single post proves nothing. Patterns become canonical knowledge only at
+  `config.yaml → learning.min_sample` and with Rachel's acknowledgement.
+- Workers: skills name tiers (local / frontier / metered), never model IDs. Model
+  replacement is not a spec change.
 
-## 7. Video intake
+## 9. Excluded (`FREEZE.md`)
 
-Raw media enters `CONTENT_DROP/`. Republic registers it as an intake item (Kanban
-card in TRIAGE). Video Vision produces a structured analysis: transcript, timestamps,
-subjects/topics, visual events, demonstrations, on-screen text, good moments,
-awkward/dead sections, potential clips, possible hooks, visual context, content ideas.
+Soup, PostHog, Herdr, DeepSeek Harness, Archify, Omarchy, Fincept, Vibe Trading,
+anti-detection browser infrastructure, any additional writing "killer" skill, any new
+orchestration framework. Added only when an actual need appears and meets the v1.1
+criteria.
 
-**Video Vision observes. Republic interprets.** Video Vision does not decide strategy.
+## 10. Definition of DONE
 
-## 8. Editing engine
-
-OpenMontage is tested as the primary editor for real footage:
-`select moments → trim → assemble → captions → audio → B-roll/assets → format → render`.
-This is the first component built in implementation.
-
-## 9. HyperFrames
-
-Separate job: programmatically generated branded video elements (animated educational
-slides, statistics, quote cards, diagrams, title sequences, review animations, CTA
-cards, explainers, branded overlays, promotional videos). Built as reusable templates
-per brand, e.g. `hyperframes/templates/physically-meta/{educational-reel,
-review-highlight, pain-explainer, faq, promotion, myth-vs-fact}`.
-Republic supplies content. HyperFrames supplies repeatable production.
-
-## 10. Editing acceptance test
-
-Neither OpenMontage nor HyperFrames is kept for being interesting. For the same
-content, each is scored on: Quality; Rachel intervention required; Time saved; Caption
-quality; Clip selection; Brand consistency; Rendering reliability; Cost; Repeatability.
-The permanent system must require **less Rachel**, not merely produce more AI. If a
-tool does something poorly, Claude QA identifies it. If the other tool solves it, keep
-that one. If they duplicate each other, remove one. Rubric: `tests/acceptance/editing-acceptance.md`.
-
-## 11. Repurposing
-
-One Repurposing skill. Input is the **core content object**, not a platform post.
-```
-CORE IDEA → IG (native) / TikTok (native) / YouTube (native) / …
-```
-Platform experts decide the transformation.
-
-## 12. GHL publishing
-
-Approved assets flow `Republic → GHL → schedule/publish`. Republic owns what and why.
-GHL owns execution, for every platform GHL supports.
-
-## 13. Comment-to-DM
-
-No standalone product. A Republic capability that designs and manages the GHL
-workflow: `POST → "Comment GUIDE" → GHL trigger → public reply → DM → resource →
-CRM contact/tag → nurture → booking/conversion`. Republic designs. GHL executes.
-
-## 14. Reputation
-
-GHL review capabilities plus Republic intelligence:
-```
-NEW REVIEW → sentiment → good | neutral | sensitive
-             good/neutral → reply draft ; sensitive → owner alert
-           → customer-language extraction → Republic knowledge
-```
-Positive reviews become voice-of-customer research. Recurring negatives become
-operational intelligence.
-
-## 15. Search department
-
-Claude SEO as a bounded specialist. Republic requests, e.g. "Audit Physically Meta's
-local search presence" or "Build the SEO brief for this service page." Claude SEO
-executes; Republic consumes structured results. Internal Claude SEO agents are opaque.
-
-## 16. Paid department
-
-```
-Republic → Paid Acquisition request → Claude Ads → audit/strategy/findings
-        → Republic → Claude QA where appropriate → Rachel approval for meaningful spend/change
-```
-Experimental agents never autonomously alter substantial ad budgets. Threshold:
-`kanban/pipeline.yaml → gates.paid_spend`.
-
-## 17. Librarian upgrade
-
-Existing Librarian rules remain authoritative, especially **Propose, don't destroy**
-and **Every 00_DROP item gets exactly one outcome.** Added: LLM-Wiki behavior. After
-judging something valuable, Librarian asks whether it UPDATES, CONTRADICTS,
-STRENGTHENS, or SUPERSEDES existing knowledge; CHANGES a project; CREATES a
-relationship; REVEALS a reusable concept; or CREATES a decision. Then it updates the
-canonical note rather than creating another random one. Raw material is preserved.
-Canonical decisions carry `status: active` / `canonical: true`; superseded decisions
-are preserved and linked, never silently overwritten.
-
-## 18. AnyDoc
-
-Before Librarian interpretation when needed: `DOCX/PPTX/XLSX/EPUB/PDF/CSV → AnyDoc
-→ Markdown → Librarian`. AnyDoc converts. It does not decide where knowledge belongs.
-
-## 19. QMD
-
-Obsidian = durable knowledge. QMD = retrieval/index. Librarian = governance.
-Hermes = reasoning/orchestration. QMD is not a database-of-everything. After
-meaningful Librarian changes the relevant collection is reindexed. Archive/discard
-material is excluded from normal retrieval.
-
-## 20. Understand Anything
-
-For Rachel's comprehension, not Republic's runtime. Pointed first at the AI
-operating-system documentation (Socrates ↔ Republic ↔ profiles ↔ skills ↔ systems ↔
-knowledge). Reduce scope if overwhelming. Not a source of truth.
-
-## 21. Kanban is Republic's operational truth
-
-Hermes Kanban represents actual work. Content job columns:
-`TRIAGE → RESEARCH → STRATEGY → PLATFORM BRIEF → PRODUCTION → QA → RACHEL APPROVAL →
-SCHEDULED → PUBLISHED → MEASURED → DONE`. **Chat = interaction. Kanban = state.**
-Definition: `kanban/pipeline.yaml`.
-
-## 22. Claude is the QA layer
-
-Strict role: find defects, do not redesign. Full contract in `qa/QA_CONTRACT.md`.
-Findings are BLOCKER / DEFECT / IMPROVEMENT / PREFERENCE. Only BLOCKER and DEFECT
-prevent Republic v1 from shipping.
-
-## 23. Models and workers
-
-Model selection is not architectural. Republic uses the appropriate worker (Qwen
-local, Claude, Codex, other) per the existing `model-routing` skill. Every workflow
-must survive model replacement. Skills reference **worker tiers**, never model IDs.
-
-## 24. Soup
-
-Not installed. Skills are structured so a router (`Republic → [future router] →
-skill library`) could be inserted later. Soup is evaluated only if Hermes skill
-selection proves unreliable.
-
-## 25. Explicitly excluded from v1
-
-No DeepSeek Harness. No Herdr. No Omarchy. No Fincept. No Vibe Trading. No
-anti-detection browser infrastructure (unless a legitimate workflow later requires
-specialized browser automation). No additional writing "killer" skills. No new
-orchestration framework. This is the freeze boundary (`FREEZE.md`).
-
-## 26. The learning loop
-
-```
-publish → performance → what happened? → Librarian → evidence accumulates
-       → meaningful pattern? → update canonical knowledge
-```
-Republic does not rewrite itself per post. A single underperforming Reel proves
-nothing. A pattern across a sufficient sample (`kanban/pipeline.yaml →
-learning.min_sample`) becomes durable brand knowledge.
-
-## 27. PostHog
-
-Not installed in v1. Measurement uses GHL data, native social analytics, Search
-Console, and ad-platform data. Added only when a specific measurement gap is
-identified.
-
-## 28. Implementation sequence
-
-Five build blocks:
-
-- **Block A — Production first:** Video Vision → OpenMontage → HyperFrames → QA → choose permanent editing stack.
-- **Block B — Republic intelligence:** Last 30 Days → Research → Writing System → brand schemas → platform experts.
-- **Block C — Growth:** Claude SEO → GHL comment-to-DM / reputation / CRM → Claude Ads.
-- **Block D — Knowledge:** Librarian LLM-Wiki upgrade → AnyDoc → QMD → Understand Anything.
-- **Block E — Control:** Kanban → Claude QA contract → acceptance tests → documentation → freeze.
-
-## Definition of DONE
-
-See `DEFINITION_OF_DONE.md`. In one line: Rachel can say *"Here are the videos I
-recorded this week. Handle social for Physically Meta,"* and the system runs
-`ingest → understand → research → decide → write → edit → adapt → QA → present for
-approval → schedule → publish → capture results → preserve learning` without Rachel
-coordinating models, digging through terminals, copying prompts, hand-editing every
-video, or remembering what happened. Then: **stop building. Run it.**
+`DEFINITION_OF_DONE.md`. All four batches passed QA; the editing stack chosen and
+recorded; Rachel can hand the week's videos to Socrates and get scheduled, approved
+posts without coordinating tools. Then: **stop building. Run it.**

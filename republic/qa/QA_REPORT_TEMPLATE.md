@@ -2,7 +2,7 @@
 
 - **Date:**
 - **Reviewer:** Claude (independent QA)
-- **Scope:** <what was reviewed: spec section, skill, build block, end-to-end run>
+- **Scope:** <what was reviewed: spec section, skill, batch, end-to-end run>
 - **Spec version:** 1.0.0
 - **Verdict:** PASS | FAIL
 
@@ -17,11 +17,12 @@
 | Boundary | Verified | Note |
 |---|---|---|
 | Socrates never publishes, schedules, approves | ☐ | |
-| No department bypasses RACHEL APPROVAL | ☐ | |
+| No added skill bypasses the existing approval step | ☐ | |
 | Paid spend above gate is never autonomous | ☐ | |
 | Librarian preserves originals; supersedes are linked | ☐ | |
 | Claude never approves or publishes | ☐ | |
 | Skills reference worker tiers, not model IDs | ☐ | |
+| Preserved pieces unchanged (diff vs pre-upgrade copy) | ☐ | |
 
 ## Operability check
 

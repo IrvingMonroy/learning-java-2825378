@@ -1,74 +1,62 @@
-# The Republic — v1
+# The Republic — v1 upgrade package
 
-The Republic is Rachel's AI operating system for content, distribution, and growth,
-running on Hermes Agent on the VPS Droplet. Socrates is the interface. Six permanent
-departments do the work. GHL executes. The Librarian keeps the knowledge. Claude is
-the independent QA layer.
+The Republic already runs on Hermes Agent on the VPS Droplet: SOUL, profiles, Librarian,
+Obsidian + QMD knowledge, Kanban jobs, a GHL direction, and a working raw-video →
+Instagram workflow. This package **feeds it carefully selected capabilities** and
+gives Claude a strict QA role. It does not rebuild anything.
 
-Read in this order:
+**Rule:** Preserve working behavior. Add missing capability. Replace only demonstrated
+weak behavior. The one demonstrated weak behavior is video editing, so Batch 1 is
+production.
 
-1. `SPEC.md` — the frozen architecture and every decision behind it.
-2. `DEFINITION_OF_DONE.md` — the single test that decides when to stop building.
-3. `FREEZE.md` — what is excluded and what qualifies as a v1.1 change.
-4. `qa/QA_CONTRACT.md` — Claude's role and finding classifications.
+Read in order: `SPEC.md` → `GAP_ANALYSIS.md` → `batches/` → `qa/QA_CONTRACT.md` →
+`DEFINITION_OF_DONE.md` → `FREEZE.md`.
 
 ## Layout
 
 ```
 republic/
-├── SPEC.md                    frozen specification
-├── DEFINITION_OF_DONE.md      end-to-end acceptance
-├── FREEZE.md                  exclusions + change policy
-├── qa/                        QA contract, report template, reports
-├── kanban/                    pipeline columns, gates, thresholds, card template
-├── skills/                    Hermes skills (one directory per skill, SKILL.md each)
-├── brands/                    Voice DNA schema per brand/client
-├── hyperframes/templates/     reusable branded video element specs
-├── tests/acceptance/          editing acceptance rubric, end-to-end run sheet
-└── scripts/                   install, validate, smoke test
+├── SPEC.md                  upgrade specification (frozen)
+├── GAP_ANALYSIS.md          what must be read on the existing Republic before install
+├── config.yaml              thresholds (paid spend gate, learning sample, review policy)
+├── batches/                 one README per batch: what is added, the QA gate
+├── skills/                  additive Hermes skills, each tagged with its batch
+├── upgrades/                instruction patches appended to existing pieces (Librarian)
+├── brands/brand-schema.md   what Republic Writing expects from an existing brand profile
+├── hyperframes/templates/   branded template specs (Physically Meta)
+├── tests/acceptance/        editing acceptance (baseline vs new), end-to-end run sheet
+├── qa/                      QA contract, report template, reports
+└── scripts/                 validate.py, install.sh --batch N, smoke-test.sh
 ```
 
-## Skills
+## Capabilities by batch
 
-| Skill | Department | Purpose |
-|---|---|---|
-| `republic-triage` | Republic | Register intake, open Kanban cards, route to departments |
-| `republic-research` | 01_RESEARCH | One intelligence pass → Research Brief |
-| `republic-search` | 02_SEARCH | Bounded delegation to Claude SEO |
-| `republic-writing-system` | 03_CONTENT | Voice DNA → blank page → angles → writing mode → Writing QA |
-| `republic-platform-experts` | 03_CONTENT | Native adaptation per platform |
-| `republic-repurposing` | 03_CONTENT | Core content object → native versions |
-| `republic-video-intake` | 04_PRODUCTION | Video Vision analysis; observe, don't decide |
-| `republic-editing` | 04_PRODUCTION | OpenMontage editing pipeline |
-| `republic-hyperframes` | 04_PRODUCTION | Templated branded video elements |
-| `republic-production-acceptance` | 04_PRODUCTION | Score editing tools; choose the permanent stack |
-| `republic-distribution` | 05_DISTRIBUTION_CRM | GHL publishing, comment-to-DM, reputation |
-| `republic-paid` | 06_PAID | Bounded delegation to Claude Ads with spend gate |
-| `republic-librarian` | Knowledge | LLM-Wiki upgrade on existing Librarian rules |
-| `republic-anydoc` | Knowledge | Documents → Markdown before Librarian |
-| `republic-qmd` | Knowledge | Reindex after Librarian changes |
-| `republic-learning-loop` | Knowledge | Evidence → pattern → canonical knowledge |
-| `republic-kanban` | Control | Card lifecycle, gates, status answers |
-| `republic-qa` | Control | The Claude QA contract as a runnable skill |
+| Batch | Skill / patch | Adds to | Replaces |
+|---|---|---|---|
+| 1 | `republic-video-vision` | existing video intake | nothing |
+| 1 | `republic-openmontage` | existing production step | manual editing, only if it passes acceptance |
+| 1 | `republic-hyperframes` | existing production step | nothing |
+| 2 | `republic-last-30-days` | existing research/idea step | nothing |
+| 2 | `republic-writing` | existing drafting step | nothing (the five source skills are not installed) |
+| 3 | `upgrades/librarian-llm-wiki.md` | existing Librarian instructions | nothing; appended |
+| 3 | `republic-anydoc` | existing Librarian intake | nothing |
+| 4 | `republic-claude-seo` | Republic | nothing |
+| 4 | `republic-claude-ads` | Republic | nothing |
 
-## Install on the Droplet
+## Install (on the Droplet, one batch at a time)
 
 ```bash
-git clone <this repo> ~/republic-src
-cd ~/republic-src/republic
-python3 scripts/validate.py          # must pass before install
-./scripts/install.sh                 # links skills into ~/.hermes/skills/republic/
-./scripts/smoke-test.sh              # reports which external tools are present
+cd republic
+python3 scripts/validate.py            # package consistency
+./scripts/install.sh --batch 1         # links only Batch 1 skills into ~/.hermes/skills/
+./scripts/smoke-test.sh                # which external tools are reachable
 ```
-
-External tools (Video Vision, OpenMontage, HyperFrames, Claude SEO, Claude Ads,
-Last 30 Days, AnyDoc, QMD, Understand Anything) are installed separately per their
-own docs. `smoke-test.sh` only reports whether each is reachable; a missing tool
-blocks the department that depends on it and nothing else.
+Install the next batch only after Claude QA reports PASS on the current one. The
+Librarian patch is applied by hand: append `upgrades/librarian-llm-wiki.md` to the
+existing Librarian instructions; do not replace the file.
 
 ## Operating it
-
-- Talk to **Socrates**. Ask for status from the **Kanban board**. Never from agent chats.
-- Approve at the **RACHEL APPROVAL** column. That is the gate.
-- When something fails, it is a QA finding, not a redesign. File it with `qa/QA_REPORT_TEMPLATE.md`.
-- New ideas go to the Librarian as *interesting, not actionable* unless they meet `FREEZE.md`.
+Talk to Socrates. Status comes from Kanban, as it does today. Approval happens where
+it happens today. Anything that fails is a QA finding (`qa/QA_REPORT_TEMPLATE.md`),
+not a redesign. New ideas go to the Librarian as *interesting, not actionable* unless
+they meet `FREEZE.md`.

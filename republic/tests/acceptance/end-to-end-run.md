@@ -5,24 +5,24 @@ for Physically Meta."* Fill every row. Any row that required a Rachel touch othe
 the two gates is a bottleneck candidate.
 
 - **Run date:**
-- **Cards opened:**
+- **Jobs opened:**
 - **Reviewer:** Claude QA
 
 | # | Stage | Expected evidence | Observed | Rachel touch? | PASS/FAIL |
 |---|---|---|---|---|---|
-| 1 | ingest | one card per item in TRIAGE | | | |
-| 2 | understand | video-analysis.md on each card, all 12 fields present or `missing` | | | |
-| 3 | research | exactly one Research Brief per card | | | |
-| 4 | decide | objective + writing mode + platforms set at STRATEGY | | | |
-| 5 | write | drafts with `writing_qa: PASS` | | | |
-| 6 | edit | rendered assets + render log, 0 interventions | | | |
-| 7 | adapt | one native version per platform, `derived_from: core` | | | |
+| 1 | ingest | one job per item, created by the existing intake | | | |
+| 2 | understand | video-analysis.md on each job, all 12 fields present or `missing` | | | |
+| 3 | research | exactly one Research Brief per job (Last 30 Days) | | | |
+| 4 | decide | objective + mode + platforms set by the existing strategy step | | | |
+| 5 | write | drafts with `voice_qa: PASS` (republic-writing) | | | |
+| 6 | edit | rendered assets + render log from the chosen stack, 0 interventions | | | |
+| 7 | adapt | one native version per platform (existing profiles) | | | |
 | 8 | QA | report in qa/reports/, verdict | | | |
-| 9 | present for approval | card in RACHEL_APPROVAL, Socrates notified once | | **expected** | |
-| 10 | schedule | GHL planner IDs on card | | | |
+| 9 | present for approval | job at the existing approval step, Socrates notified once | | **expected** | |
+| 10 | schedule | GHL planner IDs on the job (existing step) | | | |
 | 11 | publish | PUBLISHED with live URLs | | | |
-| 12 | capture results | metrics on card at MEASURED | | | |
-| 13 | preserve learning | evidence note filed; QMD reindexed; no canonical change below min_sample | | | |
+| 12 | capture results | metrics on the job | | | |
+| 13 | preserve learning | evidence note filed by the existing Librarian; QMD reindexed; no canonical change below config.yaml min_sample | | | |
 
 ## Operability
 | Question | Answer |

@@ -1,0 +1,21 @@
+# Republic v1 upgrade — the only place thresholds live. Skills read these; they never invent numbers.
+# Defaults set by QA pending Rachel's confirmation (see qa/reports). Existing Republic config is not touched.
+version: 1.0.0
+
+paid_spend:                 # SPEC §8 — Rachel approval for meaningful spend/change
+  absolute_usd: 50          # any single change at or above this
+  relative_pct: 20          # or at or above this % of current budget
+  autonomous_allowed: false # v1: Claude Ads recommends; nothing is applied by a skill
+
+learning:                   # SPEC §8 — evidence before canonical knowledge
+  min_sample: 12
+  measurement_window_days: 7
+  canonical_requires: rachel_ack
+
+reviews:
+  reply_policy: approve-each   # approve-each | auto-good-only (per brand override in the brand profile)
+
+workers:                    # tiers only; resolution lives in the model-routing skill
+  local: "T0 — free local tier: transcript cleanup, tagging, extraction, reformatting"
+  frontier: "T1 — frontier session: brand voice, strategy, judgment"
+  metered: "T1a — metered API within model-routing guardrails only"

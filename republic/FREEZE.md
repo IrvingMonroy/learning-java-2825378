@@ -1,42 +1,35 @@
 # Freeze Boundary and v1.1 Change Policy
 
-Republic v1 is frozen once it passes QA (`qa/QA_CONTRACT.md`) and the Definition of
-Done (`DEFINITION_OF_DONE.md`). At that point Republic moves from **build mode** to
-**operations mode**.
+Republic v1 is frozen once all four batches pass Claude QA and the Definition of Done
+holds. Then Republic moves from **build mode** to **operations mode**.
 
-## Explicitly excluded from v1
+## Preserved pieces (frozen from the start)
+SOUL/identity · profiles (Instagram included) · Librarian (patched, never replaced) ·
+Obsidian + QMD · Kanban job creation · GHL publishing and its approval step · Socrates ·
+the raw-video → Instagram workflow (as baseline until a tool beats it on acceptance).
 
+## Explicitly excluded
 | Excluded | Reason recorded |
 |---|---|
-| DeepSeek Harness | Out of scope; no demonstrated need |
-| Herdr | Out of scope |
-| Omarchy | Out of scope |
-| Fincept | Out of scope |
-| Vibe Trading | Out of scope |
+| Soup (skill router) | Only if Hermes skill selection proves unreliable |
+| PostHog | Only for an identified measurement gap; GHL, native analytics, Search Console, ad data first |
+| Herdr, DeepSeek Harness, Archify, Omarchy, Fincept, Vibe Trading | No actual need |
 | Anti-detection browser infrastructure | Only if a legitimate workflow later requires specialized browser automation |
-| Additional writing "killer" skills (Blank Page Killer, Ghostwriter Killer, 72 Reasons to Buy, Copywriter Killer, Slop Killer, Hook Agent, Caption Agent, CTA Agent, or any successor) | Absorbed into the single Republic Writing System; installing them separately is skill soup |
-| New orchestration framework | Hermes is the orchestrator |
-| Soup (skill router) | Deferred; evaluated only if Hermes skill selection proves unreliable |
-| PostHog | Deferred; added only for an identified measurement gap |
+| Blank Page Killer, Ghostwriter Killer, 72 Reasons to Buy, Copywriter Killer, Slop Killer, Hook/Caption/CTA agents as separate installs | Absorbed into the single `republic-writing` skill |
+| Any new orchestration framework | Hermes is the orchestrator |
 
 ## What qualifies as a v1.1 change
+1. **A demonstrated defect** — QA BLOCKER or DEFECT with a reproduction.
+2. **A recurring manual bottleneck** — the same Rachel intervention on three or more jobs.
+3. **Meaningful cost reduction** — measured against run notes, not estimated.
+4. **A deliberately chosen new service capability** — recorded as a canonical decision in the vault.
 
-A change is admitted only if it is one of:
+Everything else the Librarian files as *interesting, not actionable*. A cool GitHub
+repo appearing on Instagram is not a change request.
 
-1. **A demonstrated defect** — a QA finding classified BLOCKER or DEFECT, with a reproduction.
-2. **A recurring manual bottleneck** — the same Rachel intervention observed on three or more jobs.
-3. **Meaningful cost reduction** — measured, not estimated, against the run notes.
-4. **A deliberately chosen new service capability** — a decision Rachel records as canonical in the vault.
-
-Everything else is filed by the Librarian as *interesting, not actionable*.
-A cool GitHub repo appearing on Instagram is not a change request.
-
-## How a v1.1 change is processed
-
+## Processing a v1.1 change
 ```
 proposal → classify against the four criteria → Rachel decision (canonical in vault)
-        → implement → Claude QA (PASS / FAIL) → merge → SPEC.md version bump
+        → implement additively → Claude QA PASS → install → SPEC.md version bump
 ```
-
-Model replacement is **not** a version change. Workers swap under the existing
-`model-routing` policy without touching this specification (SPEC §23).
+Model replacement is not a version change; workers swap under `model-routing`.

@@ -1,39 +1,38 @@
 ---
 name: republic-hyperframes
-description: 04_PRODUCTION programmatic branded video elements via HyperFrames — animated educational slides, statistics, quote cards, diagrams, title sequences, review animations, CTA cards, explainers, branded overlays, promotional videos — rendered from reusable per-brand templates in hyperframes/templates/. Republic supplies content; HyperFrames supplies repeatable production. Use when a Platform Brief or editing job requests a generated element, or for fully generated promotional pieces.
+description: Adds HyperFrames to the existing Republic production step for programmatic, branded video elements — animated educational slides, statistics, quote cards, diagrams, title sequences, review animations, CTA cards, explainers, overlays, promotional pieces — rendered from reusable per-brand templates in hyperframes/templates/. Republic supplies approved content; HyperFrames supplies repeatable production. Use when a brief or the editor requests a generated element, or for a fully generated promotional piece.
 version: 1.0.0
-department: 04_PRODUCTION
-tags: [republic, hyperframes, templates, motion, branded]
+batch: 1
+adds_to: existing Republic production step
+replaces: nothing
+preserves: [existing brand profile as the token source, existing approval step]
+tags: [republic, hyperframes, templates, motion, branded, batch-1]
 ---
 
-# HyperFrames — repeatable branded production
+# HyperFrames — repeatable branded elements
 
-Separate job from editing real footage. (SPEC §9)
+A separate job from editing real footage. (SPEC §3, §6)
 
 ## Templates
-`hyperframes/templates/<brand>/<template>.md` defines each template's content slots,
-duration, and brand tokens. Physically Meta ships six:
-`educational-reel · review-highlight · pain-explainer · faq · promotion · myth-vs-fact`.
-A new client inherits the template set by copying the brand directory and swapping
-tokens.
+`hyperframes/templates/<brand>/<template>.md` defines slots, duration, and required
+tokens. Physically Meta ships six: `educational-reel · review-highlight ·
+pain-explainer · faq · promotion · myth-vs-fact`. A new client inherits the set by
+copying the directory and pointing it at their brand profile.
 
 ## Procedure
-1. Receive a request from the card: template name, brand, slot content (approved copy
-   only), target platform format.
-2. Validate slot content against the template (required slots present, character
-   limits respected, claims present in `proof.md`/`offers.md`). Reject with the exact
-   missing slot rather than filling it.
-3. Render with HyperFrames using brand tokens from `brands/<brand>/brand.md`. Attach
-   output, render log, and time to the card.
-4. If the element is for `republic-editing`, hand it back on the card; if standalone,
-   move the card to QA.
+1. Receive from the job: template, brand, slot content (approved copy only), target format.
+2. Validate: required slots present, limits respected, every claim present in the
+   brand's proof/offers. Reject naming the exact missing slot; never fill it.
+3. Render with the brand's visual tokens read from the **existing brand profile**.
+   Refuse if any token is empty. Attach output, render log, time to the job.
+4. Hand back to `republic-openmontage` when the element is for a footage edit; otherwise
+   the job proceeds to the existing QA/approval step.
 
-## Building or changing a template
-Only through a v1.1 change or the acceptance test outcome. A template change is a
-card of type `ops`, passes QA, and is recorded in the template file's `changelog`.
+## Changing a template
+Only via the acceptance outcome or a v1.1 change, recorded in the template's `changelog`.
 
 ## Boundaries
-- Never writes copy. Slots take approved text only.
-- Never renders a template for a brand without a complete `brand.md` token set.
-- Never produces elements that duplicate what OpenMontage already produced on the same
-  card; the acceptance test decides who owns overlapping capabilities.
+- Never writes copy. Never renders without complete tokens.
+- Never duplicates an element OpenMontage already produced on the same job; the
+  acceptance test assigns overlapping capabilities to one tool.
+- Never publishes or approves.

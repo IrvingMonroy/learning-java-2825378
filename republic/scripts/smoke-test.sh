@@ -16,10 +16,10 @@ have() { command -v "$1" >/dev/null 2>&1; }
 echo "-- Hermes"
 [[ -d "$HERMES_HOME" ]] && ok "hermes home" "$HERMES_HOME" || miss "hermes home" "$HERMES_HOME (set HERMES_HOME)"
 have hermes && ok "hermes cli" "$(command -v hermes)" || miss "hermes cli" "not on PATH"
-[[ -d "$HERMES_HOME/skills/republic" ]] && ok "republic skills" "$(ls "$HERMES_HOME/skills/republic" 2>/dev/null | wc -l | tr -d ' ') installed" || miss "republic skills" "run scripts/install.sh"
+n=$(ls -d "$HERMES_HOME"/skills/republic-* 2>/dev/null | wc -l | tr -d " "); [[ "$n" -gt 0 ]] && ok "republic capabilities" "$n installed" || miss "republic capabilities" "run scripts/install.sh --batch 1"
 [[ -d "$CONTENT_DROP" ]] && ok "CONTENT_DROP" "$CONTENT_DROP" || miss "CONTENT_DROP" "$CONTENT_DROP (set CONTENT_DROP)"
 
-echo "-- Departments → external tools (SPEC §2)"
+echo "-- Capabilities → external tools (SPEC §3)"
 check() { # name, department, candidates...
   local name="$1" dept="$2"; shift 2
   for c in "$@"; do
@@ -27,16 +27,16 @@ check() { # name, department, candidates...
   done
   miss "$name" "$dept blocked until installed"
 }
-check "Video Vision"   "04_PRODUCTION"       video-vision videovision "$HOME/video-vision"
-check "OpenMontage"    "04_PRODUCTION"       openmontage "$HOME/openmontage"
-check "HyperFrames"    "04_PRODUCTION"       hyperframes "$HOME/hyperframes"
-check "Last 30 Days"   "01_RESEARCH"         last30days last-30-days "$HOME/last30days"
-check "Claude SEO"     "02_SEARCH"           claude-seo "$HOME/claude-seo"
-check "Claude Ads"     "06_PAID"             claude-ads "$HOME/claude-ads"
-check "AnyDoc"         "knowledge"           anydoc "$HOME/anydoc"
-check "QMD"            "knowledge"           qmd "$HOME/qmd"
-check "Obsidian vault" "knowledge"           "${OBSIDIAN_VAULT:-$HOME/vault}"
+check "Video Vision"   "batch 1"       video-vision videovision "$HOME/video-vision"
+check "OpenMontage"    "batch 1"       openmontage "$HOME/openmontage"
+check "HyperFrames"    "batch 1"       hyperframes "$HOME/hyperframes"
+check "Last 30 Days"   "batch 2"         last30days last-30-days "$HOME/last30days"
+check "Claude SEO"     "batch 4"           claude-seo "$HOME/claude-seo"
+check "Claude Ads"     "batch 4"             claude-ads "$HOME/claude-ads"
+check "AnyDoc"         "batch 3"           anydoc "$HOME/anydoc"
+check "QMD (existing)" "preserved"           qmd "$HOME/qmd"
+check "Obsidian vault (existing)" "preserved"           "${OBSIDIAN_VAULT:-$HOME/vault}"
 echo "-- Workers (model-routing; tiers only)"
 if [[ -n "${OLLAMA_HOST:-}" ]]; then ok "T0 local endpoint" "$OLLAMA_HOST (set)"; else miss "T0 local endpoint" "OLLAMA_HOST unset — see model-routing/references"; fi
-[[ -n "${GHL_API_KEY:-}${GHL_LOCATION_ID:-}" ]] && ok "GHL credentials" "present in env" || miss "GHL credentials" "05_DISTRIBUTION_CRM blocked until configured"
-echo "== done. Missing rows block only their department. =="
+[[ -n "${GHL_API_KEY:-}${GHL_LOCATION_ID:-}" ]] && ok "GHL credentials" "present in env" || miss "GHL credentials" "existing GHL step — not managed by this package"
+echo "== done. A missing row blocks only its batch; preserved rows are informational. =="

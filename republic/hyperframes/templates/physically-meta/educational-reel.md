@@ -18,7 +18,7 @@ Animated educational slides teaching one thing, 20–40s.
 - closing_line (BRAND WRITING, no CTA unless objective is conversion)
 
 ## Brand tokens
-Read from `brands/physically-meta/brand.md → Visual tokens`. Render refuses if any token is empty.
+Read from the existing Physically Meta brand profile (fields per `brands/brand-schema.md → brand`). Render refuses if any token is empty.
 
 ## Acceptance
 Scored in `tests/acceptance/editing-acceptance.md`. Holds a permanent position only after passing.

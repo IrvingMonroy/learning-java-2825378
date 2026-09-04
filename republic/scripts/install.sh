@@ -1,35 +1,37 @@
 #!/usr/bin/env bash
-# Install Republic v1 skills into a Hermes Agent home.
-# Usage: ./scripts/install.sh [--copy]   (default: symlink; --copy copies instead)
+# Install ONE batch of Republic v1 capabilities into an existing Hermes home. Additive only.
+# Usage: ./scripts/install.sh --batch N [--copy]
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
-SKILL_DST="$HERMES_HOME/skills/republic"
-PKG_DST="$HERMES_HOME/republic"
-MODE="link"; [[ "${1:-}" == "--copy" ]] && MODE="copy"
+SKILL_DST="$HERMES_HOME/skills"
+PKG_DST="$HERMES_HOME/republic-upgrade"
+BATCH=""; MODE="link"
+while [[ $# -gt 0 ]]; do case "$1" in --batch) BATCH="$2"; shift 2;; --copy) MODE="copy"; shift;; *) echo "unknown arg $1"; exit 2;; esac; done
+[[ -z "$BATCH" ]] && { echo "usage: install.sh --batch N [--copy]  (one batch at a time; next batch only after Claude QA PASS)"; exit 2; }
+[[ -d "$HERMES_HOME" ]] || { echo "No Hermes home at $HERMES_HOME. This installs INTO an existing Republic; set HERMES_HOME."; exit 1; }
 
-echo "Republic v1 install → $HERMES_HOME ($MODE)"
 python3 "$HERE/scripts/validate.py" || { echo "validate.py FAILED — not installing."; exit 1; }
 
-mkdir -p "$SKILL_DST" "$HERMES_HOME/skills"
+# Refuse to overwrite anything that already exists under a different origin.
+installed=0
 for d in "$HERE"/skills/*/; do
   name="$(basename "$d")"
-  rm -rf "$SKILL_DST/$name"
-  if [[ $MODE == link ]]; then ln -s "$d" "$SKILL_DST/$name"; else cp -r "$d" "$SKILL_DST/$name"; fi
+  b="$(sed -n 's/^batch:[[:space:]]*//p' "$d/SKILL.md" | head -1)"
+  [[ "$b" == "$BATCH" ]] || continue
+  dst="$SKILL_DST/$name"
+  if [[ -e "$dst" && ! -L "$dst" ]]; then
+    echo "  [skip] $name — a non-package skill already exists at $dst (preserve; resolve in GAP_ANALYSIS.md)"; continue
+  fi
+  rm -rf "$dst"
+  if [[ $MODE == link ]]; then ln -s "$d" "$dst"; else cp -r "$d" "$dst"; fi
+  echo "  [add]  $name → $dst"; installed=$((installed+1))
 done
-
-# Package (spec, kanban, brands, templates, tests, qa) available to skills at a stable path.
-rm -rf "$PKG_DST"
-if [[ $MODE == link ]]; then ln -s "$HERE" "$PKG_DST"; else cp -r "$HERE" "$PKG_DST"; fi
-
-cat <<MSG
-
-Installed $(ls "$HERE/skills" | wc -l | tr -d ' ') skills to $SKILL_DST
-Package at $PKG_DST (SPEC.md, kanban/pipeline.yaml, brands/, hyperframes/)
-
-Next:
-  1. Run ./scripts/smoke-test.sh to see which external tools are reachable.
-  2. Fill brands/physically-meta/voice.md from real transcripts (remove TODO-SOURCE).
-  3. Confirm thresholds in kanban/pipeline.yaml (paid_spend, learning.min_sample).
-  4. Start Block A: drop three videos in CONTENT_DROP/ and run the editing acceptance test.
-MSG
+mkdir -p "$PKG_DST"
+for f in SPEC.md config.yaml brands hyperframes upgrades tests qa; do
+  rm -rf "$PKG_DST/$f"
+  if [[ $MODE == link ]]; then ln -s "$HERE/$f" "$PKG_DST/$f"; else cp -r "$HERE/$f" "$PKG_DST/$f"; fi
+done
+echo "Batch $BATCH: $installed skill(s) added. Package refs at $PKG_DST. Nothing existing was modified."
+[[ "$BATCH" == "3" ]] && echo "Batch 3 also needs the Librarian patch appended by hand: upgrades/librarian-llm-wiki.md (never replace the existing file)."
+echo "Next: ./scripts/smoke-test.sh, then run batches/batch-$BATCH-*.md and hand the result to Claude QA."
